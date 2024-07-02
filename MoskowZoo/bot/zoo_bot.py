@@ -74,6 +74,17 @@ def output_question_and_answers(message):
 
 # 7. Функция для закольцевания работы метода.
 def ask_question(message: types.Message):
+
+    counts = {'1.': 0, '2.': 0, '3.': 0, '4.': 0}
+    if message.text[0] == "1":
+        list(counts.values())[0] += 1
+    elif message.text[0] == "2":
+        list(counts.values())[1] += 1
+    elif message.text[0] == "3":
+        list(counts.values())[2] += 1
+    elif message.text[0] == "4":
+        list(counts.values())[3] += 1
+
     global k
     if re.search(r'^(?:\d\.\s|Начать тест)', message.text):
         kb = output_question_and_answers(message)
@@ -82,24 +93,18 @@ def ask_question(message: types.Message):
         msg = bot.send_message(message.chat.id, text="Нажимайте на кнопки ниже, для того, чтобы дать ответ!")
     bot.register_next_step_handler(msg, process_answer)
 
+    print(type(message.text[0]))
+    print(list(counts.values()))
+
 
 # 8. Обработка ответа.
-def process_answer(message):
-    с1 = 0
-    с2 = 0
-    с3 = 0
-    с4 = 0
-    counts = {'1.': 0, '2.': 0, '3.': 0, '4.': 0}
-    if output_question_and_answers(message) == buttons[0]:
-        counts.update({'1.': с1 + 1})
-    elif output_question_and_answers(message) == buttons[1]:
-        counts.update({'2.': с2 + 1})
-    elif output_question_and_answers(message) == buttons[2]:
-        counts.update({'3.': с3 + 1})
-    elif output_question_and_answers(message) == buttons[3]:
-        counts.update({'4.': с4 + 1})
+def process_answer(message: types.Message):
+    if re.search(r'^(?:\d\.\s|Начать тест)', message.text):
+        bot.send_message(message.chat.id, text="Ваш ответ обработан!\nСледующий вопрос:")
+        ask_question(message)
+    else:
+        bot.send_message(message.chat.id, text="Нажимайте на кнопки ниже, для того, чтобы дать ответ!")
 
-    return counts
 
 def calculation_results(counts, message):
     max_count = max(counts.values())
@@ -120,9 +125,6 @@ def calculation_results(counts, message):
 
     if len(max_categories) == 1:
         return totem_info[max_categories[0]]
-
-    answ = bot.send_message(message.chat.id, text="Ваш ответ обработан!")
-    bot.register_next_step_handler(answ, ask_question)
 
 
 # 9. Запуск бота.
