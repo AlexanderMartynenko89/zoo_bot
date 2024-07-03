@@ -36,12 +36,12 @@ def button_start(message):
 
 
 # 4. Проверка ввода на ошибку.
-@bot.message_handler(func=lambda message: True)
+@bot.message_handler(func=lambda message: message.text == 'Начать тест' or message.text == 'Связаться с сотрудником зоопарка')
 def handle_text(message):
     try:
         if message.text.lower() != 'начать тест':
             if message.text.lower() != 'связаться с сотрудником зоопарка':
-                raise InputException("Введено неправильное значение!")
+                raise InputException("– Введено неправильное значение!")
         if message.text.lower() == 'начать тест':
             ask_question(message)
         elif message.text.lower() == 'связаться с сотрудником зоопарка':
@@ -72,8 +72,27 @@ def output_question_and_answers(message):
     return keyboard
 
 
-# 7. Функция для закольцевания работы метода.
+# 7. Функция для отправки вопроса.
 def ask_question(message: types.Message):
+    global k
+    if k != 14:
+        print(k)
+        kb = output_question_and_answers(message)
+        msg = bot.send_message(message.chat.id, text=list(QuestionsAboutAnimals.items())[k][0], reply_markup=kb)
+        bot.register_next_step_handler(msg, process_answer)
+
+
+# 8. Функция для обработки ответа.
+@bot.message_handler(func=lambda message: message.text == any(sub in message.text for sub in list(QuestionsAboutAnimals.items())[k][1]))
+def process_answer(message: types.Message):
+    try:
+        if re.search(r'^(\d\.\s)', message.text):
+            bot.send_message(message.chat.id, text="Ваш ответ обработан!\nСледующий вопрос:")
+            ask_question(message)
+        else:
+            raise InputException("– Нажимайте на кнопки ниже, для того, чтобы дать ответ!")
+    except InputException as e:
+        bot.reply_to(message, f"Ошибка отправки сообщения: \n{e}")
 
     counts = {'1.': 0, '2.': 0, '3.': 0, '4.': 0}
     if message.text[0] == "1":
@@ -85,28 +104,11 @@ def ask_question(message: types.Message):
     elif message.text[0] == "4":
         list(counts.values())[3] += 1
 
-    global k
-    if re.search(r'^(?:\d\.\s|Начать тест)', message.text):
-        kb = output_question_and_answers(message)
-        msg = bot.send_message(message.chat.id, text=list(QuestionsAboutAnimals.items())[k][0], reply_markup=kb)
-    else:
-        msg = bot.send_message(message.chat.id, text="Нажимайте на кнопки ниже, для того, чтобы дать ответ!")
-    bot.register_next_step_handler(msg, process_answer)
-
-    print(type(message.text[0]))
-    print(list(counts.values()))
+    print(counts)
 
 
-# 8. Обработка ответа.
-def process_answer(message: types.Message):
-    if re.search(r'^(?:\d\.\s|Начать тест)', message.text):
-        bot.send_message(message.chat.id, text="Ваш ответ обработан!\nСледующий вопрос:")
-        ask_question(message)
-    else:
-        bot.send_message(message.chat.id, text="Нажимайте на кнопки ниже, для того, чтобы дать ответ!")
-
-
-def calculation_results(counts, message):
+#9. Функция для подсчета ответов.
+def calculation_results(counts):
     max_count = max(counts.values())
     max_categories = [cat for cat, count in counts.items() if count == max_count]
 
